@@ -1,0 +1,6 @@
+{
+  "name": "Nexora ERP",
+  "description": "Nexora ERP & Sakha (सखा) — Trilingual Indian retail ERP with Single-Customer Udhaar Khata, POS Billing, Inventory, Purchases, Expenses, Staff & Branches, Tasks, Multi-tier SaaS Plans, and Sakha AI Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

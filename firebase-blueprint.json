@@ -1,0 +1,321 @@
+{
+  "entities": {
+    "Plan": {
+      "title": "Subscription Plan",
+      "description": "Configurable SaaS tier plan for Nexora ERP.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "enum": ["trial", "starter", "growth", "pro"] },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "billingDays": { "type": "integer" },
+        "badge": { "type": "string" },
+        "sortOrder": { "type": "integer" },
+        "highlights": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["code", "name", "price", "billingDays", "badge", "sortOrder", "highlights", "updatedAt"]
+    },
+    "Business": {
+      "title": "Business",
+      "description": "Multi-tenant shop / business entity owned by a signed-in user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "businessType": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "preferredLang": { "type": "string", "enum": ["en", "hi", "hinglish"] },
+        "currency": { "type": "string" },
+        "fyStart": { "type": "string" },
+        "gstin": { "type": "string" },
+        "planId": { "type": "string", "enum": ["trial", "starter", "growth", "pro"] },
+        "subscriptionStatus": { "type": "string", "enum": ["trialing", "active", "expired"] },
+        "trialStartMillis": { "type": "integer" },
+        "trialEndMillis": { "type": "integer" },
+        "planEndMillis": { "type": "integer" },
+        "negativeStockProtection": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "ownerName", "city", "preferredLang", "planId", "subscriptionStatus", "trialStartMillis", "trialEndMillis", "negativeStockProtection", "createdAt", "updatedAt"]
+    },
+    "Branch": {
+      "title": "Branch",
+      "description": "Physical shop branch belonging to a business.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "primaryBranch": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "name", "city", "primaryBranch", "createdAt", "updatedAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Single-customer running Udhaar Khata profile.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "openingBalance": { "type": "number" },
+        "overdueDays": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "name", "openingBalance", "overdueDays", "createdAt", "updatedAt"]
+    },
+    "KhataEntry": {
+      "title": "KhataEntry",
+      "description": "Immutable append-only ledger entry for a customer khata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "type": { "type": "string", "enum": ["credit", "payment", "credit_reversal", "payment_reversal"] },
+        "amount": { "type": "number" },
+        "note": { "type": "string" },
+        "date": { "type": "string" },
+        "refEntryId": { "type": "string" },
+        "saleId": { "type": "string" },
+        "idempotencyKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "customerId", "customerName", "type", "amount", "note", "date", "idempotencyKey", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Inventory SKU item with cost/sell prices and stock level.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "name": { "type": "string" },
+        "sku": { "type": "string" },
+        "unit": { "type": "string" },
+        "costPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "taxRate": { "type": "number" },
+        "stock": { "type": "number" },
+        "lowStockThreshold": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "name", "unit", "costPrice", "sellPrice", "taxRate", "stock", "lowStockThreshold", "createdAt", "updatedAt"]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Immutable inventory stock audit entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string", "enum": ["opening", "sale", "sale_return", "purchase", "adjustment"] },
+        "qty": { "type": "number" },
+        "reason": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "productId", "productName", "type", "qty", "reason", "date", "createdAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "POS sale invoice record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "invoiceNo": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["completed", "returned"] },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "discount": { "type": "number" },
+        "total": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "paymentMode": { "type": "string" },
+        "paidNow": { "type": "number" },
+        "udhaarAmount": { "type": "number" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "idempotencyKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "invoiceNo", "date", "status", "items", "subtotal", "tax", "discount", "total", "totalCost", "paymentMode", "paidNow", "udhaarAmount", "customerName", "idempotencyKey", "createdAt", "updatedAt"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Vendor or wholesale supplier.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "name", "createdAt", "updatedAt"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Supplier purchase bill.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "qty": { "type": "number" },
+        "total": { "type": "number" },
+        "paid": { "type": "number" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "supplierName", "productName", "qty", "total", "paid", "date", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operating expense entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "note": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "category", "amount", "date", "createdAt"]
+    },
+    "StaffMember": {
+      "title": "StaffMember",
+      "description": "Shop staff member record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "phone": { "type": "string" },
+        "salary": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "branchId", "name", "role", "salary", "createdAt", "updatedAt"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily staff attendance entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "half", "absent"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "staffId", "date", "status", "createdAt", "updatedAt"]
+    },
+    "ShopTask": {
+      "title": "ShopTask",
+      "description": "Shop reminder or operational task.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "businessId": { "type": "string" },
+        "title": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "businessId", "title", "dueDate", "completed", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/plans/{planId}": {
+      "schema": { "$ref": "#/entities/Plan" },
+      "description": "Global SaaS subscription plans editable by Super Admin."
+    },
+    "/users/{userId}/businesses/{businessId}": {
+      "schema": { "$ref": "#/entities/Business" },
+      "description": "Owner-scoped business entities."
+    },
+    "/users/{userId}/businesses/{businessId}/branches/{branchId}": {
+      "schema": { "$ref": "#/entities/Branch" },
+      "description": "Branches inside a business."
+    },
+    "/users/{userId}/businesses/{businessId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Single-customer Khata accounts."
+    },
+    "/users/{userId}/businesses/{businessId}/khataEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/KhataEntry" },
+      "description": "Immutable append-only Khata ledger entries."
+    },
+    "/users/{userId}/businesses/{businessId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Inventory products."
+    },
+    "/users/{userId}/businesses/{businessId}/stockMovements/{movementId}": {
+      "schema": { "$ref": "#/entities/StockMovement" },
+      "description": "Immutable stock movement audit log."
+    },
+    "/users/{userId}/businesses/{businessId}/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/Sale" },
+      "description": "POS bills and sales."
+    },
+    "/users/{userId}/businesses/{businessId}/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Suppliers for purchase tracking."
+    },
+    "/users/{userId}/businesses/{businessId}/purchases/{purchaseId}": {
+      "schema": { "$ref": "#/entities/Purchase" },
+      "description": "Purchase bills."
+    },
+    "/users/{userId}/businesses/{businessId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Shop operating expenses."
+    },
+    "/users/{userId}/businesses/{businessId}/staff/{staffId}": {
+      "schema": { "$ref": "#/entities/StaffMember" },
+      "description": "Shop staff members."
+    },
+    "/users/{userId}/businesses/{businessId}/attendance/{attendanceId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Daily staff attendance."
+    },
+    "/users/{userId}/businesses/{businessId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/ShopTask" },
+      "description": "Shop tasks and reminders."
+    }
+  }
+}
