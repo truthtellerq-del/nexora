@@ -38,7 +38,7 @@ import kotlinx.coroutines.tasks.await
 class NexoraRepository(
     private val db: FirebaseFirestore,
     private val auth: FirebaseAuth = Firebase.auth
-) {
+) : NexoraDataSource {
     constructor(context: Context) : this(
         FirebaseFirestore.getInstance(
             context.applicationContext.getString(R.string.firestore_database_id)
@@ -75,7 +75,7 @@ class NexoraRepository(
         )
     }
 
-    fun observePlans(): Flow<List<SubscriptionPlan>> = flow {
+    override fun observePlans(): Flow<List<SubscriptionPlan>> = flow {
         val uid = requireUserId()
         emitAll(
             db.collection("plans").snapshots()
@@ -95,7 +95,7 @@ class NexoraRepository(
         )
     }
 
-    fun observeBusinesses(uid: String): Flow<List<Business>> = flow {
+    override fun observeBusinesses(uid: String): Flow<List<Business>> = flow {
         require(uid.isNotBlank()) { "User ID must not be blank" }
         val path = "users/$uid/businesses"
         emitAll(
@@ -114,20 +114,20 @@ class NexoraRepository(
         )
     }
 
-    fun observeBranches(uid: String, businessId: String) = observeSubcollection<Branch>(uid, businessId, "branches")
-    fun observeCustomers(uid: String, businessId: String) = observeSubcollection<Customer>(uid, businessId, "customers")
-    fun observeKhataEntries(uid: String, businessId: String) = observeSubcollection<KhataEntry>(uid, businessId, "khataEntries")
-    fun observeProducts(uid: String, businessId: String) = observeSubcollection<Product>(uid, businessId, "products")
-    fun observeStockMovements(uid: String, businessId: String) = observeSubcollection<StockMovement>(uid, businessId, "stockMovements")
-    fun observeSales(uid: String, businessId: String) = observeSubcollection<Sale>(uid, businessId, "sales")
-    fun observeSuppliers(uid: String, businessId: String) = observeSubcollection<Supplier>(uid, businessId, "suppliers")
-    fun observePurchases(uid: String, businessId: String) = observeSubcollection<Purchase>(uid, businessId, "purchases")
-    fun observeExpenses(uid: String, businessId: String) = observeSubcollection<Expense>(uid, businessId, "expenses")
-    fun observeStaff(uid: String, businessId: String) = observeSubcollection<StaffMember>(uid, businessId, "staff")
-    fun observeAttendance(uid: String, businessId: String) = observeSubcollection<AttendanceRecord>(uid, businessId, "attendance")
-    fun observeTasks(uid: String, businessId: String) = observeSubcollection<ShopTask>(uid, businessId, "tasks")
+    override fun observeBranches(uid: String, businessId: String) = observeSubcollection<Branch>(uid, businessId, "branches")
+    override fun observeCustomers(uid: String, businessId: String) = observeSubcollection<Customer>(uid, businessId, "customers")
+    override fun observeKhataEntries(uid: String, businessId: String) = observeSubcollection<KhataEntry>(uid, businessId, "khataEntries")
+    override fun observeProducts(uid: String, businessId: String) = observeSubcollection<Product>(uid, businessId, "products")
+    override fun observeStockMovements(uid: String, businessId: String) = observeSubcollection<StockMovement>(uid, businessId, "stockMovements")
+    override fun observeSales(uid: String, businessId: String) = observeSubcollection<Sale>(uid, businessId, "sales")
+    override fun observeSuppliers(uid: String, businessId: String) = observeSubcollection<Supplier>(uid, businessId, "suppliers")
+    override fun observePurchases(uid: String, businessId: String) = observeSubcollection<Purchase>(uid, businessId, "purchases")
+    override fun observeExpenses(uid: String, businessId: String) = observeSubcollection<Expense>(uid, businessId, "expenses")
+    override fun observeStaff(uid: String, businessId: String) = observeSubcollection<StaffMember>(uid, businessId, "staff")
+    override fun observeAttendance(uid: String, businessId: String) = observeSubcollection<AttendanceRecord>(uid, businessId, "attendance")
+    override fun observeTasks(uid: String, businessId: String) = observeSubcollection<ShopTask>(uid, businessId, "tasks")
 
-    suspend fun createBusinessWithMainBranch(
+    override suspend fun createBusinessWithMainBranch(
         name: String,
         ownerName: String,
         phone: String,
@@ -189,14 +189,14 @@ class NexoraRepository(
         }
     }
 
-    suspend fun updateBusinessSettings(
+    override suspend fun updateBusinessSettings(
         businessId: String,
-        preferredLang: String? = null,
-        negativeStockProtection: Boolean? = null,
-        planId: String? = null,
-        subscriptionStatus: String? = null,
-        trialEndMillis: Long? = null,
-        planEndMillis: Long? = null
+        preferredLang: String?,
+        negativeStockProtection: Boolean?,
+        planId: String?,
+        subscriptionStatus: String?,
+        trialEndMillis: Long?,
+        planEndMillis: Long?
     ): Result<Unit> {
         var path = "users/unknown/businesses/$businessId"
         return try {
@@ -220,7 +220,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addBranch(businessId: String, name: String, city: String): Result<String> {
+    override suspend fun addBranch(businessId: String, name: String, city: String): Result<String> {
         var path = "users/unknown/businesses/$businessId/branches"
         return try {
             val uid = requireUserId()
@@ -247,7 +247,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addCustomer(
+    override suspend fun addCustomer(
         businessId: String,
         branchId: String,
         name: String,
@@ -283,7 +283,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addKhataEntry(
+    override suspend fun addKhataEntry(
         businessId: String,
         branchId: String,
         customerId: String,
@@ -292,8 +292,8 @@ class NexoraRepository(
         amount: Double,
         note: String,
         date: String,
-        refEntryId: String? = null,
-        saleId: String? = null,
+        refEntryId: String?,
+        saleId: String?,
         idempotencyKey: String
     ): Result<String> {
         var path = "users/unknown/businesses/$businessId/khataEntries"
@@ -328,7 +328,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addProduct(
+    override suspend fun addProduct(
         businessId: String,
         branchId: String,
         name: String,
@@ -392,7 +392,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun adjustStock(
+    override suspend fun adjustStock(
         businessId: String,
         product: Product,
         deltaQty: Double,
@@ -438,7 +438,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun completePosSale(
+    override suspend fun completePosSale(
         businessId: String,
         branchId: String,
         invoiceNo: String,
@@ -583,7 +583,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun returnSale(
+    override suspend fun returnSale(
         businessId: String,
         sale: Sale,
         currentProducts: List<Product>
@@ -658,7 +658,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addSupplier(businessId: String, name: String, phone: String): Result<String> {
+    override suspend fun addSupplier(businessId: String, name: String, phone: String): Result<String> {
         var path = "users/unknown/businesses/$businessId/suppliers"
         return try {
             val uid = requireUserId()
@@ -684,7 +684,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addPurchase(
+    override suspend fun addPurchase(
         businessId: String,
         branchId: String,
         supplierId: String?,
@@ -748,7 +748,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addExpense(
+    override suspend fun addExpense(
         businessId: String,
         branchId: String,
         category: String,
@@ -783,7 +783,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addStaff(
+    override suspend fun addStaff(
         businessId: String,
         branchId: String,
         name: String,
@@ -819,7 +819,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun markAttendance(
+    override suspend fun markAttendance(
         businessId: String,
         staffId: String,
         date: String,
@@ -856,7 +856,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun addTask(businessId: String, title: String, dueDate: String): Result<String> {
+    override suspend fun addTask(businessId: String, title: String, dueDate: String): Result<String> {
         var path = "users/unknown/businesses/$businessId/tasks"
         return try {
             val uid = requireUserId()
@@ -883,7 +883,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun toggleTask(businessId: String, task: ShopTask): Result<Unit> {
+    override suspend fun toggleTask(businessId: String, task: ShopTask): Result<Unit> {
         var path = "users/unknown/businesses/$businessId/tasks/${task.id}"
         return try {
             val uid = requireUserId()
@@ -899,7 +899,7 @@ class NexoraRepository(
         }
     }
 
-    suspend fun savePlansAsAdmin(plans: List<SubscriptionPlan>): Result<Unit> {
+    override suspend fun savePlansAsAdmin(plans: List<SubscriptionPlan>): Result<Unit> {
         return try {
             requireUserId()
             val batch = db.batch()

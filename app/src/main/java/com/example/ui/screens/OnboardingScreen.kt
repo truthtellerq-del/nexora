@@ -42,6 +42,7 @@ fun OnboardingScreen(
     defaultOwnerName: String,
     language: AppLanguage,
     canCancel: Boolean,
+    isCreating: Boolean = false,
     onCancel: () -> Unit,
     onCreateShop: (
         name: String, ownerName: String, phone: String, businessType: String,
@@ -190,7 +191,7 @@ fun OnboardingScreen(
                             gstin.trim()
                         )
                     },
-                    enabled = shopName.trim().isNotEmpty() && city.trim().isNotEmpty(),
+                    enabled = !isCreating && shopName.trim().isNotEmpty() && city.trim().isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(containerColor = Emerald600, contentColor = Color.White),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
@@ -198,7 +199,7 @@ fun OnboardingScreen(
                         .heightIn(min = 52.dp)
                         .testTag("onboarding_launch_button")
                 ) {
-                    Text(t.startTrialBtn, style = MaterialTheme.typography.labelLarge)
+                    Text(if (isCreating) "Creating Shop..." else t.startTrialBtn, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

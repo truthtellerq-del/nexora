@@ -95,6 +95,7 @@ private fun NexoraApp() {
     val credentialManager = remember(context) { CredentialManager.create(context) }
 
     var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
+    var isCheckingSession by remember { mutableStateOf(Firebase.auth.currentUser == null) }
     var authLanguage by remember { mutableStateOf(AppLanguage.EN) }
 
     DisposableEffect(Unit) {
@@ -108,14 +109,23 @@ private fun NexoraApp() {
     }
 
     LaunchedEffect(Unit) {
-        if (Firebase.auth.currentUser == null) {
+        val existing = Firebase.auth.currentUser
+        if (existing == null) {
             attemptAutoSignIn(
                 context = context,
                 credentialManager = credentialManager,
-                onAuthSuccess = { currentUser = Firebase.auth.currentUser },
-                onUnauthenticated = {},
+                onAuthSuccess = { user ->
+                    currentUser = user
+                    isCheckingSession = false
+                },
+                onUnauthenticated = {
+                    isCheckingSession = false
+                },
                 scope = scope
             )
+        } else {
+            currentUser = existing
+            isCheckingSession = false
         }
     }
 
@@ -123,8 +133,11 @@ private fun NexoraApp() {
     if (user == null) {
         AuthScreen(
             language = authLanguage,
+            isCheckingSession = isCheckingSession,
             onLanguageChange = { authLanguage = it },
-            onAuthSuccess = { currentUser = Firebase.auth.currentUser }
+            onAuthSuccess = { signedInUser ->
+                currentUser = signedInUser
+            }
         )
     } else {
         val uid = user.uid

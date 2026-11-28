@@ -58,12 +58,14 @@ import com.example.ui.theme.Emerald500
 import com.example.ui.theme.Emerald600
 import com.example.ui.theme.Navy900
 import com.example.ui.theme.Navy950
+import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun AuthScreen(
     language: AppLanguage,
+    isCheckingSession: Boolean = false,
     onLanguageChange: (AppLanguage) -> Unit,
-    onAuthSuccess: () -> Unit
+    onAuthSuccess: (FirebaseUser) -> Unit
 ) {
     val t = stringsFor(language)
     val context = LocalContext.current
@@ -93,7 +95,6 @@ fun AuthScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Language selector pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -161,7 +162,7 @@ fun AuthScreen(
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("auth_error_banner")
                     ) {
                         Text(
                             text = errorMessage!!,
@@ -179,19 +180,22 @@ fun AuthScreen(
                         onGoogleSignInClicked(
                             context = context,
                             credentialManager = credentialManager,
-                            onAuthSuccess = {
+                            onAuthSuccess = { user ->
                                 isLoading = false
-                                onAuthSuccess()
+                                onAuthSuccess(user)
                             },
                             onAuthError = { msg ->
                                 isLoading = false
                                 errorMessage = msg
                             },
                             scope = scope,
-                            onAuthCancelled = { isLoading = false }
+                            onAuthCancelled = { diagnosticMsg ->
+                                isLoading = false
+                                errorMessage = diagnosticMsg
+                            }
                         )
                     },
-                    enabled = !isLoading,
+                    enabled = !isLoading && !isCheckingSession,
                     colors = ButtonDefaults.buttonColors(containerColor = Navy900, contentColor = Color.White),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
@@ -199,7 +203,7 @@ fun AuthScreen(
                         .heightIn(min = 52.dp)
                         .testTag("google_sign_in_button")
                 ) {
-                    if (isLoading) {
+                    if (isLoading || isCheckingSession) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
                             color = Color.White,

@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ai.SakhaEngine
 import com.example.ai.SakhaParseResult
-import com.example.data.NexoraRepository
+import com.example.data.NexoraDataSource
 import com.example.model.AppLanguage
 import com.example.model.AttendanceRecord
 import com.example.model.Branch
@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -67,7 +68,7 @@ data class ToastEvent(val message: String, val isError: Boolean = false)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NexoraViewModel(
-    private val repository: NexoraRepository,
+    private val repository: NexoraDataSource,
     private val sakhaEngine: SakhaEngine,
     val currentUserId: String,
     val userEmail: String,
@@ -84,6 +85,11 @@ class NexoraViewModel(
 
     private val _showOnboarding = MutableStateFlow(false)
     val showOnboarding: StateFlow<Boolean> = _showOnboarding.asStateFlow()
+
+    private val _isCreatingShop = MutableStateFlow(false)
+    val isCreatingShop: StateFlow<Boolean> = _isCreatingShop.asStateFlow()
+
+    private val _retryTrigger = MutableStateFlow(0)
 
     private val _showUpgradeModal = MutableStateFlow(false)
     val showUpgradeModal: StateFlow<Boolean> = _showUpgradeModal.asStateFlow()
@@ -118,24 +124,12 @@ class NexoraViewModel(
     private val _sakhaSpeakText = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val sakhaSpeakText = _sakhaSpeakText.asSharedFlow()
 
-    private fun <T> Flow<List<T>>.toUiStateFlow(tag: String): StateFlow<UiState<List<T>>> =
-        this.map<List<T>, UiState<List<T>>> { UiState.Success(it) }
-            .catch { error ->
-                val fsErr = generateSequence(error) { it.cause }
-                    .filterIsInstance<FirebaseFirestoreException>().firstOrNull()
-                if (fsErr == null && error is CancellationException) throw error
-                val root = fsErr ?: error
-                Log.w(TAG, "Stream error ($tag)", root)
-                emit(UiState.Error(root.localizedMessage ?: "Failed to load $tag"))
-            }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), UiState.Loading)
-
     private fun <T> Flow<List<T>>.toListStateFlow(tag: String): StateFlow<List<T>> =
         this.catch { error ->
             val fsErr = generateSequence(error) { it.cause }
                 .filterIsInstance<FirebaseFirestoreException>().firstOrNull()
             if (fsErr == null && error is CancellationException) throw error
-            Log.w(TAG, "Stream error ($tag)", fsErr ?: error)
+            logWarn("Stream error ($tag)", fsErr ?: error)
             emit(emptyList())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
@@ -146,8 +140,21 @@ class NexoraViewModel(
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), DEFAULT_PLANS)
         }
 
-    val businessesState: StateFlow<UiState<List<Business>>> =
-        repository.observeBusinesses(currentUserId).toUiStateFlow("businesses")
+    val businessesState: StateFlow<UiState<List<Business>>> = _retryTrigger
+        .flatMapLatest {
+            repository.observeBusinesses(currentUserId)
+                .map<List<Business>, UiState<List<Business>>> { UiState.Success(it) }
+                .onStart { emit(UiState.Loading) }
+                .catch { error ->
+                    val fsErr = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>().firstOrNull()
+                    if (fsErr == null && error is CancellationException) throw error
+                    val root = fsErr ?: error
+                    logWarn("Stream error (businesses)", root)
+                    emit(UiState.Error(root.localizedMessage ?: "Failed to load businesses"))
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), UiState.Loading)
 
     val businesses: StateFlow<List<Business>> = businessesState
         .map { (it as? UiState.Success)?.data ?: emptyList() }
@@ -237,6 +244,10 @@ class NexoraViewModel(
         _selectedBranchId.value = branchId
     }
 
+    fun retryLoadBusinesses() {
+        _retryTrigger.value += 1
+    }
+
     fun openOnboarding(open: Boolean) { _showOnboarding.value = open }
     fun openUpgradeModal(open: Boolean) { _showUpgradeModal.value = open }
     fun navigate(section: NavSection) { _currentSection.value = section }
@@ -255,18 +266,25 @@ class NexoraViewModel(
         name: String, ownerName: String, phone: String, businessType: String,
         city: String, state: String, preferredLang: AppLanguage, fyStart: String, gstin: String
     ) {
+        if (_isCreatingShop.value) return
+        if (!_showOnboarding.value && businesses.value.isNotEmpty()) return
         viewModelScope.launch {
-            val res = repository.createBusinessWithMainBranch(
-                name, ownerName, phone, businessType, city, state, preferredLang.code, fyStart, gstin
-            )
-            res.onSuccess { (bizId, brId) ->
-                _selectedBizId.value = bizId
-                _selectedBranchId.value = brId
-                _language.value = preferredLang
-                _showOnboarding.value = false
-                emitToast("Shop created! 7-Day Full Access Trial started.")
-            }.onFailure { err ->
-                emitToast(err.localizedMessage ?: "Failed to create shop", true)
+            _isCreatingShop.value = true
+            try {
+                val res = repository.createBusinessWithMainBranch(
+                    name, ownerName, phone, businessType, city, state, preferredLang.code, fyStart, gstin
+                )
+                res.onSuccess { (bizId, brId) ->
+                    _selectedBizId.value = bizId
+                    _selectedBranchId.value = brId
+                    _language.value = preferredLang
+                    _showOnboarding.value = false
+                    emitToast("Shop created! 7-Day Full Access Trial started.")
+                }.onFailure { err ->
+                    emitToast(err.localizedMessage ?: "Failed to create shop", true)
+                }
+            } finally {
+                _isCreatingShop.value = false
             }
         }
     }
@@ -640,6 +658,10 @@ class NexoraViewModel(
     private fun appendSakhaReply(text: String) {
         _sakhaMessages.value = _sakhaMessages.value + SakhaChatMessage(UUID.randomUUID().toString(), false, text)
         _sakhaSpeakText.tryEmit(text)
+    }
+
+    private fun logWarn(message: String, error: Throwable) {
+        runCatching { Log.w(TAG, message, error) }
     }
 
     private companion object {

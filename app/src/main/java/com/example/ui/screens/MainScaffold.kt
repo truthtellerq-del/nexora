@@ -129,6 +129,7 @@ fun MainScaffold(
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
 
     val showOnboarding by viewModel.showOnboarding.collectAsStateWithLifecycle()
+    val isCreatingShop by viewModel.isCreatingShop.collectAsStateWithLifecycle()
     val showUpgradeModal by viewModel.showUpgradeModal.collectAsStateWithLifecycle()
     val currentSection by viewModel.currentSection.collectAsStateWithLifecycle()
 
@@ -183,7 +184,14 @@ fun MainScaffold(
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Could not load shop data", style = MaterialTheme.typography.titleMedium, color = Crimson600)
                         Text(state.message, style = MaterialTheme.typography.bodyMedium)
-                        OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = viewModel::retryLoadBusinesses,
+                            colors = ButtonDefaults.buttonColors(containerColor = Emerald600, contentColor = Color.White),
+                            modifier = Modifier.fillMaxWidth().testTag("workspace_retry_button")
+                        ) {
+                            Text("Retry")
+                        }
+                        OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth().testTag("workspace_error_sign_out_button")) {
                             Text(t.logout)
                         }
                     }
@@ -197,6 +205,7 @@ fun MainScaffold(
                     defaultOwnerName = viewModel.userDisplayName,
                     language = language,
                     canCancel = businesses.isNotEmpty(),
+                    isCreating = isCreatingShop,
                     onCancel = { viewModel.openOnboarding(false) },
                     onCreateShop = { name, owner, phone, type, city, st, lang, fy, gst ->
                         viewModel.createShop(name, owner, phone, type, city, st, lang, fy, gst)
